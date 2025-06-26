@@ -35,6 +35,7 @@ CTRL +
  ```
 
 ### TODO
+- [ ] Config  
 - [ ] Improve saving and loading
 - [ ] Make it prettier — optional syntax highlighting, themes, etc
 - [ ] Better completions

@@ -8,7 +8,7 @@ use std::{
 };
 
 use chrono::Local;
-use eframe::egui::{self, Key, Response, Ui, global_theme_preference_switch};
+use eframe::egui::{self, global_theme_preference_switch, scroll_area::ScrollBarVisibility, Key, Response, Ui};
 use egui::Margin;
 use egui::text::CCursor;
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
@@ -823,7 +823,7 @@ impl eframe::App for SapfAsPlainText {
 
             egui::CentralPanel::default().show_inside(ui, |ui| {
                 let pointer_pos = ui.ctx().pointer_latest_pos();
-                let top_hover_height = 40.0;
+                let top_hover_height = 45.0;
 
                 if let Some(pos) = pointer_pos {
                     let ui_rect = ui.max_rect();
@@ -855,6 +855,7 @@ impl eframe::App for SapfAsPlainText {
 
                         egui::ScrollArea::horizontal()
                             .auto_shrink([false, true])
+                            .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
                             .show(ui, |ui| {
                                 ui.horizontal(|ui| {
                                     ui.spacing_mut().item_spacing.x = 2.0;
@@ -874,12 +875,9 @@ impl eframe::App for SapfAsPlainText {
                                             close_buffer = Some(idx);
                                         }
                                     }
-                                    ui.separator();
                                 });
                             });
                     });
-
-                    ui.separator();
                 } else {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 2.0;
