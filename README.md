@@ -2,7 +2,8 @@
 **I know it's not true, but I couldn't resist*
 
 An Editor for [SAPF](https://github.com/lfnoise/sapf).
-Just the beginning.
+
+![Alt text](https://github.com/vasilymilovidov/sapf-as-plain-text/blob/main/screenshot.png)
 
 ### How to use
 You must have 'sapf' in your path.
