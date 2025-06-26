@@ -29,11 +29,6 @@ CTRL +
   TAB - call completions popup
  ```
 
-### What works
-- Basic text editing
-- Sending code to sapf's repl
-- Code completions and hints
-
 ### TODO
 - [X] More keybindings — stop, reinit, clear stack, record
 - [X] Buffers

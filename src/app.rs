@@ -441,11 +441,128 @@ impl SapfAsPlainText {
             .to_string()
     }
 
+    // TODO Convoluted, need fix edge cases 
+    fn get_block_at_cursor(&self) -> Option<String> {
+        let content = &self.get_current_buffer().content;
+        let cursor_pos = self.get_current_buffer().cursor_pos;
+
+        if cursor_pos > content.len() {
+            return None;
+        }
+
+        if let Some((start, end)) = self.find_innermost_block(content, cursor_pos) {
+            let statement = self.extend_to_complete_statement(content, start, end);
+            return Some(statement.trim().to_string());
+        }
+
+        None
+    }
+
+    fn find_innermost_block(&self, content: &str, cursor_pos: usize) -> Option<(usize, usize)> {
+        let chars: Vec<char> = content.chars().collect();
+        let mut best_block: Option<(usize, usize)> = None;
+        let mut stack = Vec::new();
+
+        let mut i = 0;
+        while i < chars.len() {
+            let ch = chars[i];
+
+            if ch == '\\' && i + 1 < chars.len() && chars[i + 1] == '[' {
+                stack.push((i, ']'));
+                i += 2;
+                continue;
+            }
+
+            match ch {
+                '(' => {
+                    stack.push((i, ')'));
+                }
+                '{' => {
+                    stack.push((i, '}'));
+                }
+                '[' => {
+                    stack.push((i, ']'));
+                }
+                ')' | '}' | ']' => {
+                    if let Some((start, expected_close)) = stack.pop() {
+                        if ch == expected_close
+                            && start <= cursor_pos
+                            && cursor_pos <= i
+                            && (best_block.is_none()
+                                || (i - start) < (best_block.unwrap().1 - best_block.unwrap().0))
+                        {
+                            best_block = Some((start, i));
+                        }
+                    }
+                }
+                _ => {}
+            }
+
+            i += 1;
+        }
+
+        best_block
+    }
+
+    fn extend_to_complete_statement(
+        &self,
+        content: &str,
+        block_start: usize,
+        block_end: usize,
+    ) -> String {
+        let chars: Vec<char> = content.chars().collect();
+
+        let mut start = block_start;
+        for i in (0..block_start).rev() {
+            match chars[i] {
+                '\n' => {
+                    let line_has_content = (i + 1..block_start).any(|j| !chars[j].is_whitespace());
+                    if line_has_content {
+                        start = i + 1;
+                    }
+                    break;
+                }
+                ';' | ')' | '}' | ']' => {
+                    start = i + 1;
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        let mut end = block_end;
+        let mut i = block_end + 1;
+        while i < chars.len() {
+            match chars[i] {
+                ' ' | '\t' => {
+                    i += 1;
+                    continue;
+                }
+                '\n' | ';' => break,
+                '(' | '{' | '[' if i > block_end + 1 => break,
+                c if !c.is_whitespace() => end = i,
+                _ => {}
+            }
+            i += 1;
+        }
+
+        let statement: String = chars[start..=end].iter().collect();
+        statement.trim().to_string()
+    }
+
+    fn get_code_to_send(&self) -> String {
+        if let Some(block) = self.get_block_at_cursor() {
+            return block;
+        }
+
+        self.get_current_line()
+    }
+
     fn handle_key_input(&mut self, ctx: &egui::Context) {
         ctx.input(|i| {
             if i.key_pressed(Key::Enter) && i.modifiers.ctrl {
                 println!("{}", self.get_current_line());
-                let code = self.get_current_line();
+                let code = self.get_code_to_send();
                 if !code.trim().is_empty() {
                     self.send_to_sapf(&code);
                 }
