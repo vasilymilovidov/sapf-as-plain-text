@@ -441,7 +441,7 @@ impl SapfAsPlainText {
             .to_string()
     }
 
-    // TODO Convoluted, need fix edge cases 
+    // TODO Convoluted, need to fix edge cases 
     fn get_block_at_cursor(&self) -> Option<String> {
         let content = &self.get_current_buffer().content;
         let cursor_pos = self.get_current_buffer().cursor_pos;
