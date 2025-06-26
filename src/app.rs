@@ -8,7 +8,7 @@ use std::{
 };
 
 use chrono::Local;
-use eframe::egui::{self, Key, Response, Ui};
+use eframe::egui::{self, Key, Response, Ui, global_theme_preference_switch};
 use egui::Margin;
 use egui::text::CCursor;
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     WINDOW_TITLE,
     completions_and_hints::{SapfDictionary, get_current_word_for_completion, get_word_at_cursor},
+    ui::setup_custom_style,
     window::custom_window_frame,
 };
 
@@ -108,7 +109,8 @@ pub struct SapfAsPlainText {
 }
 
 impl SapfAsPlainText {
-    pub fn new() -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        setup_custom_style(&cc.egui_ctx);
         let mut app = if let Ok(saved_state) = AppState::load_from_file() {
             Self::from_saved_state(saved_state)
         } else {
@@ -295,6 +297,17 @@ impl SapfAsPlainText {
         }
     }
 
+    fn close_buffer(&mut self, idx: usize) {
+        if self.buffers.len() > 1 {
+            self.buffers.remove(idx);
+            if self.current_buffer_idx >= self.buffers.len() {
+                self.current_buffer_idx = self.buffers.len() - 1;
+            }
+            self.should_focus_text_edit = true;
+            self.save_state();
+        }
+    }
+
     fn switch_to_buffer(&mut self, idx: usize) {
         if idx < self.buffers.len() {
             self.current_buffer_idx = idx;
@@ -454,11 +467,11 @@ impl SapfAsPlainText {
                 self.send_to_sapf("clear");
             }
 
-             if i.key_pressed(Key::P) && i.modifiers.ctrl {
+            if i.key_pressed(Key::P) && i.modifiers.ctrl {
                 self.send_to_sapf("prstk");
             }
 
-             if i.key_pressed(Key::R) && i.modifiers.ctrl {
+            if i.key_pressed(Key::R) && i.modifiers.ctrl {
                 let code = self.get_current_line();
                 let date = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
                 let buffer_name = &self.buffers[self.current_buffer_idx].name;
@@ -702,32 +715,24 @@ impl eframe::App for SapfAsPlainText {
                 }
 
                 let mut switch_to_buffer: Option<usize> = None;
+                let mut close_buffer: Option<usize> = None;
                 let mut create_new = false;
-                let mut close_current = false;
                 let mut export_buffer = false;
                 let mut load_file = false;
 
                 if self.show_buffer_bar {
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
+                            global_theme_preference_switch(ui);
                             if ui.small_button("add").clicked() {
                                 create_new = true;
                             }
-
-                            if ui.button("close").clicked() && self.buffers.len() > 1 {
-                                close_current = true;
-                            }
-
-                            ui.separator();
-
                             if ui.button("open").clicked() {
                                 load_file = true;
                             }
-
                             if ui.button("export").clicked() {
                                 export_buffer = true;
                             }
-                            ui.separator();
                         });
 
                         ui.add_space(5.0);
@@ -736,7 +741,7 @@ impl eframe::App for SapfAsPlainText {
                             .auto_shrink([false, true])
                             .show(ui, |ui| {
                                 ui.horizontal(|ui| {
-                                    ui.spacing_mut().item_spacing.x = 4.0;
+                                    ui.spacing_mut().item_spacing.x = 2.0;
 
                                     for (idx, buffer) in self.buffers.iter().enumerate() {
                                         let label = if buffer.is_modified {
@@ -748,6 +753,9 @@ impl eframe::App for SapfAsPlainText {
                                         let is_current = idx == self.current_buffer_idx;
                                         if ui.selectable_label(is_current, &label).clicked() {
                                             switch_to_buffer = Some(idx);
+                                        }
+                                        if ui.small_button("x").clicked() {
+                                            close_buffer = Some(idx);
                                         }
                                     }
                                     ui.separator();
@@ -764,9 +772,6 @@ impl eframe::App for SapfAsPlainText {
 
                         ui.label("•");
                         ui.label(&self.buffers[self.current_buffer_idx].name);
-                        if self.buffers[self.current_buffer_idx].is_modified {
-                            ui.colored_label(egui::Color32::LIGHT_YELLOW, "*");
-                        }
                     });
                     ui.add_space(2.0);
                 }
@@ -777,8 +782,8 @@ impl eframe::App for SapfAsPlainText {
                 if create_new {
                     self.create_new_buffer();
                 }
-                if close_current {
-                    self.close_current_buffer();
+                if let Some(idx) = close_buffer {
+                    self.close_buffer(idx);
                 }
                 if export_buffer {
                     self.export_current_buffer();

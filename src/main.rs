@@ -2,6 +2,7 @@ mod app;
 mod completions_and_hints;
 mod dict;
 mod window;
+mod ui;
 
 use crate::app::SapfAsPlainText;
 use eframe::egui::{self, Vec2, vec2};
@@ -22,6 +23,6 @@ fn main() -> eframe::Result {
     eframe::run_native(
         WINDOW_TITLE,
         options,
-        Box::new(|_| Ok(Box::new(SapfAsPlainText::new()))),
+        Box::new(|cc| Ok(Box::new(SapfAsPlainText::new(cc)))),
     )
 }
