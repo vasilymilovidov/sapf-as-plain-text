@@ -27,12 +27,14 @@ CTRL +
   D - clear the stack
   P - print the stack
   TAB - call completions popup
+  T - new buffer
+  S - export buffer to a file
+  W - clode buffer
+  O - load file into buffer
  ```
 
 ### TODO
-- [X] More keybindings — stop, reinit, clear stack, record
-- [X] Buffers
-- [X] Export
-- [ ] Make it pretty — optional syntax highlighting, themes, etc
+- [ ] Improve saving and loading
+- [ ] Make it prettier — optional syntax highlighting, themes, etc
 - [ ] Better completions
 - [ ] VIM motions?

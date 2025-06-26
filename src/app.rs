@@ -802,7 +802,6 @@ impl eframe::App for SapfAsPlainText {
         custom_window_frame(ctx, WINDOW_TITLE, |ui| {
             egui::TopBottomPanel::bottom("console")
                 .show_separator_line(false)
-                .resizable(true)
                 .exact_height(180.0)
                 .show_inside(ui, |ui| {
                     ui.vertical(|ui| {
