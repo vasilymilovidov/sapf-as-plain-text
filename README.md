@@ -23,15 +23,15 @@ export SAPF_SPECTROGRAMS="$HOME/sapf-files/spectrograms"
 CTRL +
   RETURN - send the current line
   . - stop all sound
-  E - stop previous sounds and send the current line
-  R - record (it takes care about the file name)
-  D - clear the stack
-  P - print the stack
+  e - stop previous sounds and send the current line
+  r - record (it takes care about the file name)
+  d - clear the stack
+  p - print the stack
   TAB - call completions popup
-  T - new buffer
-  S - export buffer to a file
-  W - clode buffer
-  O - load file into buffer
+  t - new buffer
+  s - export buffer to a file
+  w - clode buffer
+  o - load file into buffer
  ```
 
 ### TODO

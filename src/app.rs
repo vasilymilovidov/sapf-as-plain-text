@@ -8,7 +8,9 @@ use std::{
 };
 
 use chrono::Local;
-use eframe::egui::{self, global_theme_preference_switch, scroll_area::ScrollBarVisibility, Key, Response, Ui};
+use eframe::egui::{
+    self, Key, Response, Ui, global_theme_preference_switch, scroll_area::ScrollBarVisibility,
+};
 use egui::Margin;
 use egui::text::CCursor;
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
@@ -441,7 +443,7 @@ impl SapfAsPlainText {
             .to_string()
     }
 
-    // TODO Convoluted, need to fix edge cases 
+    // TODO Convoluted, need to fix edge cases
     fn get_block_at_cursor(&self) -> Option<String> {
         let content = &self.get_current_buffer().content;
         let cursor_pos = self.get_current_buffer().cursor_pos;
@@ -628,6 +630,67 @@ impl SapfAsPlainText {
         });
     }
 
+    fn handle_file_drops(&mut self, ctx: &egui::Context) {
+        ctx.input(|i| {
+            if !i.raw.dropped_files.is_empty() {
+                for file in &i.raw.dropped_files {
+                    self.load_dropped_file(file);
+                }
+            }
+        });
+    }
+
+    fn load_dropped_file(&mut self, dropped_file: &egui::DroppedFile) {
+        let file_path = if let Some(ref path) = dropped_file.path {
+            path.clone()
+        } else {
+            println!("File has no path information");
+            return;
+        };
+
+        let extension = file_path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_lowercase());
+
+        match extension.as_deref() {
+            Some("sapf") | Some("txt") => match std::fs::read_to_string(&file_path) {
+                Ok(content) => {
+                    let filename = file_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("Untitled")
+                        .to_string();
+
+                    let buffer = Buffer {
+                        content,
+                        cursor_pos: 0,
+                        name: filename,
+                        is_modified: false,
+                        file_path: Some(file_path.clone()),
+                    };
+
+                    self.buffers.push(buffer);
+                    self.current_buffer_idx = self.buffers.len() - 1;
+                    self.should_focus_text_edit = true;
+                    self.save_state();
+                }
+                Err(e) => {
+                    eprintln!("Failed to load dropped file {}: {}", file_path.display(), e);
+                }
+            },
+            Some(ext) => {
+                println!(
+                    "Unsupported file type: .{} (only .sapf and .txt files are supported)",
+                    ext
+                );
+            }
+            None => {
+                println!("Dropped file has no extension (only .sapf and .txt files are supported)");
+            }
+        }
+    }
+
     fn trigger_completions(&mut self) {
         if let Some(current_word) = get_current_word_for_completion(
             &self.get_current_buffer().content,
@@ -797,6 +860,7 @@ impl eframe::App for SapfAsPlainText {
         self.update_output();
         self.handle_key_input(ctx);
         self.update_completions_and_hints();
+        self.handle_file_drops(ctx);
         let hover_info = self.hover_info.clone().unwrap_or_default();
 
         custom_window_frame(ctx, WINDOW_TITLE, |ui| {
